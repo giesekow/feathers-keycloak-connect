@@ -1,0 +1,27 @@
+{
+  "name": "feathers-keycloak-connect-server",
+  "version": "1.0.0",
+  "description": "A plugin to use feathersjs with keycloak authentication service",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build-esm && npm run build-cjs",
+    "build-esm": "npx tsc -p tsconfig.json",
+    "build-cjs": "npx tsc -p tsconfig-cjs.json",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  },
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/esm/index.js",
+  "files": [
+    "lib/"
+  ],
+  "dependencies": {
+    "@feathersjs/errors": "^4.5.11",
+    "axios": "^0.24.0",
+    "ts-jose": "^4.1.4"
+  }
+}
