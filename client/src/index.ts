@@ -82,7 +82,7 @@ export class KeycloakClient {
       const resData = data.filter((d: any) => d.rsname && d.rsname.toString() === res[r].toString())[0];
       if (resData) {
         if (!scp) return true;
-        const resScopes: string[] = (resData.scopes || []).map((s: any) => s.toString());
+        const resScopes: any = (resData.scopes || []).map((s: any) => s.toString());
         for (let s = 0; s < scp.length; s++) {
           if (resScopes.includes(scp[s].toString()) || scp[s] === '*') return true;
         }
