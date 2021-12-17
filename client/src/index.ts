@@ -2,11 +2,19 @@ import Keycloak from 'keycloak-js';
 import { Application } from '@feathersjs/feathers';
 
 export interface KeycloakClientConfig {
-  keycloakConfig: Keycloak.KeycloakConfig,
-  keycloakInit: Keycloak.KeycloakInitOptions,
-  loginRedirectUri?: string,
-  logoutRedirectUri?: string,
-  minValidity?: number
+  keycloakConfig: Keycloak.KeycloakConfig;
+  keycloakInit: Keycloak.KeycloakInitOptions;
+  loginRedirectUri?: string;
+  logoutRedirectUri?: string;
+  minValidity?: number;
+  withVueRouter?: boolean;
+  vueRouterLink?: string;
+  scope?: string;
+}
+
+interface VueRouterComponent {
+  render: any,
+  method: any,
 }
 
 export class KeycloakClient {
@@ -15,22 +23,26 @@ export class KeycloakClient {
   private loginRedirectUri: string;
   private logoutRedirectUri: string;
   private minValidity: number;
-  
-  onLoginSuccess!: any;
-  onLogoutSuccess!: any;
-  onLoginError!: any;
+  private currentUser!: any;
+  private withVueRouter: boolean;
+  private vueRouterLink: string;
+  private scope: string;
 
   constructor(app: Application, config: KeycloakClientConfig) {
     this.app = app;
     this.keycloak = Keycloak(config.keycloakConfig);
-    this.loginRedirectUri = config.loginRedirectUri || location.href;
-    this.logoutRedirectUri = config.logoutRedirectUri || location.href;
+    this.loginRedirectUri = config.loginRedirectUri || '/';
+    this.logoutRedirectUri = config.logoutRedirectUri || '/';
     this.minValidity = config.minValidity || 5;
+    this.scope = config.scope || '';
 
     this.keycloak.onAuthSuccess = () => { this.onAuthSuccess(); };
     this.keycloak.onTokenExpired = () => { this.onTokenExpired(); };
     this.keycloak.onAuthError = () => { this.onAuthError(); };
     this.keycloak.onAuthLogout = () => { this.onAuthLogout(); };
+
+    this.withVueRouter = config.withVueRouter || false;
+    this.vueRouterLink = config.vueRouterLink || '/auth';
 
     this.keycloak.init(config.keycloakInit);
 
@@ -39,17 +51,85 @@ export class KeycloakClient {
   }
 
   async onAuthSuccess() {
-    const token = this.keycloak.token
-    const user: any = await this.app.service('auth').create({ access_token: token });
-    if (this.onLoginSuccess && typeof this.onLoginSuccess === 'function') {
-      this.onLoginSuccess(user);
+    const token = this.keycloak.token;
+    try {
+      const user: any = await this.app.service('auth').create({ access_token: token });
+      this.currentUser = user;
+      let params: any = window.sessionStorage.getItem('keycloak-loginParams');
+      if (params) {
+        params = JSON.parse(params)
+        params = params.params || null;
+      } else {
+        params = null;
+      }
+      this.app.emit('authSuccess', {user: this.currentUser, params});
+    } catch (error) {
+      this.currentUser = null;
     }
   }
 
-  async onAuthLogout() {
-    if (this.onLoginSuccess && typeof this.onLoginSuccess === 'function') {
-      this.onLogoutSuccess();
+  get user() {
+    return this.currentUser;
+  }
+
+  private checkPermission(data: any[], resources: string|string[], scopes?: string|string[]): boolean {
+    const res: string[] = Array.isArray(resources) ? resources : [resources];
+    let scp: any = null;
+    if (scopes) {
+      scp = Array.isArray(scopes) ? scopes : [scopes]
     }
+    for (let r = 0; r < res.length; r++) {
+      const resData = data.filter((d: any) => d.rsname && d.rsname.toString() === res[r].toString())[0];
+      if (resData) {
+        if (!scp) return true;
+        const resScopes: string[] = (resData.scopes || []).map((s: any) => s.toString());
+        for (let s = 0; s < scp.length; s++) {
+          if (resScopes.includes(scp[s].toString()) || scp[s] === '*') return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  private resolvePermission(permission: any): any {
+    if (typeof permission === 'string') {
+      const opt = permission.split(':')
+      return {resource: opt[0], scope: opt[1] || null};
+    }
+  
+    if (permission.resource) {
+      return permission;
+    }
+  }
+  
+  hasPermission (options?: any): any {
+    const data: any[] = this.currentUser.permissions || [];
+    const permissions: any[] = [];
+    if (!options) {
+      return true;
+    } else {
+      if (Array.isArray(options)) {
+        for (let i = 0; i < options.length; i++) permissions.push(this.resolvePermission(options[i]));
+      } else {
+        permissions.push(this.resolvePermission(options));
+      }
+    }
+
+    if (permissions.length > 0) {
+      let res = false;
+      for (let i = 0; i < permissions.length; i++) {
+        res = res || this.checkPermission(data, permissions[i].resource, permissions[i].scope)
+        if (res) return true;
+      };
+      if (!res) return false;
+    }
+
+    return true;
+  }
+
+  async onAuthLogout() {
+    this.currentUser = null;
+    this.app.emit('authLogout');
   }
 
   handleSocket (socket: any) {
@@ -73,14 +153,57 @@ export class KeycloakClient {
   }
 
   onAuthError() {
-    if (this.onLoginError && typeof this.onLoginError === 'function') {
-      this.onLoginError(new Error('Unable to authenticate user!'));
+    let params: any = window.sessionStorage.getItem('keycloak-loginParams');
+    if (params) {
+      params = JSON.parse(params)
+      params = params.params || null;
+    } else {
+      params = null;
+    }
+    this.app.emit('authError', {error: new Error('Unable to authenticate user!'), params});
+  }
+
+  login(redirectUri?: string, params?: any, options?: any): void {
+    if (!this.keycloak.authenticated) {
+      window.sessionStorage.setItem('keycloak-loginParams', JSON.stringify({params}));
+      if (this.withVueRouter && this.vueRouterLink) {
+        const ruri: string = this.makeURL(this.vueRouterLink);
+        window.sessionStorage.setItem('keycloak-currentRedirect', redirectUri || this.loginRedirectUri);
+        this.keycloak.login({ scope: this.scope, ...(options || {}), redirectUri: ruri });
+      } else {
+        const ruri: string = this.makeURL(redirectUri || this.loginRedirectUri);
+        this.keycloak.login({ redirectUri: ruri });
+      }
+    } else {
+      window.sessionStorage.setItem('keycloak-loginParams', JSON.stringify({params}));
+      this.onAuthSuccess();
     }
   }
 
-  login(redirectUri?: string): void {
-    const ruri = redirectUri || this.loginRedirectUri;
-    if (!this.keycloak.authenticated) this.keycloak.login({ redirectUri: ruri });
+  vueRouterComponent(timeout?: number): VueRouterComponent {
+    const component: any = {
+      render: (h: any) => h('div'),
+      mounted() {
+        const ruri: string|null = window.sessionStorage.getItem('keycloak-currentRedirect');
+        if (ruri) {
+          setTimeout(() => {
+            (this as any).$router.replace(ruri);
+          }, timeout || 1000);
+        }
+      }
+    }
+    return component;
+  }
+
+  makeURL(path: string, origin?: string):string {
+    if (path.includes('://')) {
+      return path;
+    } else if (origin) {
+      return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+    } else {
+      const orig = location.origin;
+      return `${orig}${path.startsWith('/') ? '' : '/'}${path}`;
+    }
   }
 
   async reAuthenticate(): Promise<void> {
@@ -88,7 +211,7 @@ export class KeycloakClient {
   }
 
   logout(redirectUri?: string): void {
-    const ruri = redirectUri || this.logoutRedirectUri;
+    const ruri = this.makeURL(redirectUri || this.logoutRedirectUri);
     this.keycloak.logout({ redirectUri: ruri });
   }
 
@@ -122,6 +245,10 @@ declare module '@feathersjs/feathers' {
     logout: KeycloakClient['logout'];
     accountManagement: Keycloak.KeycloakInstance['accountManagement'];
     register: Keycloak.KeycloakInstance['register'];
+    hasRealmRole: Keycloak.KeycloakInstance['hasRealmRole'];
+    hasResourceRole: Keycloak.KeycloakInstance['hasResourceRole'];
+    loadUserInfo: Keycloak.KeycloakInstance['loadUserInfo'];
+    loadUserProfile: Keycloak.KeycloakInstance['loadUserProfile'];
   }
 }
 
@@ -135,6 +262,10 @@ export const AuthConfigure = function (config: KeycloakClientConfig) {
     app.logout = keycloak.logout.bind(keycloak);
     app.reAuthenticate = keycloak.reAuthenticate.bind(keycloak);
     app.accountManagement = keycloak.keycloak.accountManagement.bind(keycloak.keycloak);
+    app.hasRealmRole = keycloak.keycloak.hasRealmRole.bind(keycloak.keycloak);
+    app.hasResourceRole = keycloak.keycloak.hasResourceRole.bind(keycloak.keycloak);
+    app.loadUserInfo = keycloak.keycloak.loadUserInfo.bind(keycloak.keycloak);
+    app.loadUserProfile = keycloak.keycloak.loadUserProfile.bind(keycloak.keycloak);
     app.register = keycloak.keycloak.register.bind(keycloak.keycloak);
     app.authenticated = keycloak.authenticated.bind(keycloak);
     app.hooks({

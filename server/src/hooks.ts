@@ -54,7 +54,7 @@ export interface AccessOptions {
   role: string | string[]
 }
 
-export const resourceAccess = function (options?: AccessOptions | AccessOptions[]): any {
+export const hasResourceRole = function (options?: AccessOptions | AccessOptions[]): any {
   return async function(context: any) {
     const user = getUser(context);
     const client = getClient(context);
@@ -98,7 +98,7 @@ function checkResourceAccess(data: any, resources: string|string[], roles: strin
   return false;
 }
 
-export const realmAccess = function (options: string|string[]): any {
+export const hasRealmRole = function (options: string|string[]): any {
   return async function(context: any) {
     const user = getUser(context);
     const client = getClient(context);
@@ -122,3 +122,61 @@ export const realmAccess = function (options: string|string[]): any {
     throw new Forbidden('Access Denied!');
   }
 };
+
+function checkPermission(data: any[], resources: string|string[], scopes?: string|string[]): boolean {
+  const res: string[] = Array.isArray(resources) ? resources : [resources];
+  let scp: any = null;
+  if (scopes) {
+    scp = Array.isArray(scopes) ? scopes : [scopes]
+  }
+  for (let r = 0; r < res.length; r++) {
+    const resData = data.filter((d: any) => d.rsname && d.rsname.toString() === res[r].toString())[0];
+    if (resData) {
+      if (!scp) return true;
+      const resScopes: string[] = (resData.scopes || []).map((s: any) => s.toString());
+      for (let s = 0; s < scp.length; s++) {
+        if (resScopes.includes(scp[s].toString()) || scp[s] === '*') return true;
+      }
+    }
+  }
+  return false;
+}
+
+function resolvePermission(permission: any): any {
+  if (typeof permission === 'string') {
+    const opt = permission.split(':')
+    return {resource: opt[0], scope: opt[1] || null};
+  }
+
+  if (permission.resource) {
+    return permission;
+  }
+}
+
+export const hasPermission = function (options?: any): any {
+  return async function(context: any) {
+    const data: any[] = context.params.permissions;
+    const permissions: any[] = [];
+    if (!options) {
+      permissions.push({resource: context.path, scope: context.method})
+    } else {
+      if (Array.isArray(options)) {
+        for (let i = 0; i < options.length; i++) {
+          permissions.push(resolvePermission(options[i]));
+        }
+      } else {
+        permissions.push(resolvePermission(options));
+      }
+    }
+
+    if (permissions.length > 0) {
+      let res = false;
+      for (let i = 0; i < permissions.length; i++) {
+        res = res || checkPermission(data, permissions[i].resource, permissions[i].scope);
+        if (res) return context;
+      }
+      if (!res) throw new Forbidden('Access Denied!');
+    }
+    return context;
+  }
+}

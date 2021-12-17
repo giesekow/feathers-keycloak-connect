@@ -22,19 +22,27 @@ export class KeycloakServer {
   constructor(config: KeycloakServerConfig) {
     this.config = config;
     this.endpoints = {
-      certs: '/realms/{realm-name}/protocol/openid-connect/certs'
+      certs: '/realms/{realm-name}/protocol/openid-connect/certs',
+      token: '/realms/{realm-name}/protocol/openid-connect/token'
     };
     this.keystore = createRemoteJWKSet(new URL(`${this.config.serverUrl}${this.resolveURL(this.endpoints.certs)}`));
   }
 
-  async post(url: string, data: any): Promise<any> {
-    let formData: FormData = new FormData();
-    formData.set('client_id', this.config.clientId);
-    if (this.config.secret) formData.set('client_secret', this.config.secret);
+  toBase64(data: any): string {
+    const buff = Buffer.from(data,);
+    return buff.toString('base64');
+  }
+
+  post(url: string, data: any, headers?: any): Promise<any> {
+    let formData = new URLSearchParams();
+    formData.append('client_id', this.config.clientId);
+    if (this.config.secret) formData.append('client_secret', this.config.secret);
     for (let k of Object.keys(data)) {
-      formData.set(k, data[k]);
+      formData.append(k, data[k]);
     }
-    return axios.post(`${this.config.serverUrl}${url}`, formData)
+    return axios.post(`${this.config.serverUrl}${url}`, formData, {headers: {
+      ...(headers || {})
+    }})
   }
 
   resolveURL(url: string): string {
@@ -42,12 +50,33 @@ export class KeycloakServer {
     let rUrl: string = url.replace('{realm-name}', realm);
     return rUrl;
   }
+
+  async getPermissions(token: any): Promise<any> {
+    try {
+      const res: any = await this.post(
+        this.resolveURL(this.endpoints.token),
+        {
+          grant_type: 'urn:ietf:params:oauth:grant-type:uma-ticket',
+          audience: this.config.clientId,
+          subject_token: token,
+          response_mode: 'permissions',
+        },
+        {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      )
+      return res.data;
+    } catch (error) {
+      return [];
+    }
+  }
   
   async verifyToken(token: string): Promise<any> {
     let response: any = null;
     try {
       const { payload }: any = await jwtVerify(token, this.keystore);
-      response = {}
+      const permissions: any = await this.getPermissions(token);
+      response = {permissions}
       response.user = {
         email: payload.email,
         verified: payload.email_verified,
@@ -96,6 +125,7 @@ export class KeycloakServer {
             }
             req.feathers.user = content.user;
             req.feathers.client = content.client;
+            req.feathers.permisions = content.permissions || [];
           }
         }
       }
@@ -129,6 +159,7 @@ export class KeycloakServer {
             }
             context.params.connection.user = content.user;
             context.params.connection.client = content.client;
+            context.params.connection.permissions = content.permissions;
           }
         }
       }
@@ -142,7 +173,7 @@ export class KeycloakServer {
       const content: any = params && params.$token;
       if (content) {
         app.emit('login', data, params, {});
-        return content.user;
+        return {...content.user, permissions: content.permissions || []};
       } else {
         throw new Forbidden('access token error!');
       }
