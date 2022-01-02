@@ -54,12 +54,12 @@ export const restrictToOwner = function (options?: ResrictToOwnerOptions): any {
   }
 };
 
-export interface AccessOptions {
+export interface ResourceAccessOptions {
   resource: string | string[];
   role: string | string[]
 }
 
-export const hasResourceRole = function (options?: AccessOptions | AccessOptions[]): any {
+export const hasResourceRole = function (options?: ResourceAccessOptions | ResourceAccessOptions[]): any {
   return async function(context: any) {
     const user = getUser(context);
     const client = getClient(context);

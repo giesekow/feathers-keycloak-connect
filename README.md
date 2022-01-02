@@ -102,7 +102,7 @@ This means that the above example can be achieved through
 `app.service('transactions').hooks({before: {create: hooks.hasPermission()}})`
 
 
-### getUser and getClient
+### hooks.getUser and hooks.getClient
 these are utility hooks to retrieve the current user and client from the `context` object in the service hook.
 
 Example: getting the current user in your custom hook.
