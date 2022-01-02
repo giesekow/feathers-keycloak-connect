@@ -151,9 +151,29 @@ At the time of writing this documentation the required fields in the `KeycloakCo
 
 At the time of writing this documentation the `KeycloakInitOptions` has no required fields (only optional fields) check official docs for any possible update or changes [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) relevant fields include:
 * `onLoad`: action to perform after the library is loaded. options are 
-    `login-required` => checks if user is logged in and redirects to login page if not.
+    `login-required` => checks if user is logged in and redirects to login page if not. Use this option if you want your users to be authenticated before reaching the home page of the app.
     `check-sso` => silently checks sso and loads user information if user is already logged in or nothing otherwise.
 
 * `enableLogging`: boolean value to enable showing of logs in the browser console. Enable this only for debuging purposes.
 
-Other options like `adapter`, `checkLoginIframe`, `flow` are also available. Check [docs](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) for more details. 
+Other options like `adapter`, `checkLoginIframe`, `flow` are also available. Check [docs](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) for more details.
+
+## Configuring with socket-io client
+
+```
+import feathers from '@feathersjs/feathers';
+import socketio from '@feathersjs/socketio-client';
+import io from 'socket.io-client';
+import { AuthConfigure } from 'feathers-keycloak-connect-client'
+
+const socket = io('http://localhost:3030');
+const app = feathers();
+
+app.configure(socketio(socket));
+app.configure(AuthConfigure(KeycloakClientConfig));
+
+app.on('authSuccess', (payload: any) => {
+  console.log('login-info', payload);
+})
+
+```
