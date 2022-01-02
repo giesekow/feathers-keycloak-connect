@@ -158,7 +158,7 @@ At the time of writing this documentation the `KeycloakInitOptions` has no requi
 
 Other options like `adapter`, `checkLoginIframe`, `flow` are also available. Check [docs](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) for more details.
 
-## Configuring with socket-io client
+### Full Configuration example
 
 ```
 import feathers from '@feathersjs/feathers';
@@ -177,3 +177,70 @@ app.on('authSuccess', (payload: any) => {
 })
 
 ```
+
+replace the `socket.io-client` with any other client you want and the steps should be the same. However library has been extensively tested with the socket.io client and guaranteed to work. report any problem you find with other clients.
+
+
+## Using library with vue-router.
+Due to the nature and design of the vue-router library, you need to perform additional configuration in order to use this library with vue-router. 
+
+The library needs to perform feather processing after redirection from login and the redirection route has to be mounted to the library. this can be done as below.
+
+```
+const app = ... // feathersjs client already configured with the library
+const router = ... // configured vue-router object
+
+app.authentication.configureVueRouter(router);
+```
+
+## Added properties and methods to the feathers client object.
+The following properties and methods are available on the feathers client object after configuration:
+
+### authentication (property)
+The authentication library itself is accessible through this property.
+
+### keycloak (property)
+The keycloak object from `keycloak-js` library is also available here.
+
+### authenticated (function)
+ A function which returns `true` if user has logged in or false otherwise.
+
+### authenticate | login  (function)
+ A function which can be used to trigger the login action. That's redirect user to keycloak for authentication. Parameters are:
+ * `redirectUri`: (optional) a redirect URI to override the defualt configured uri.
+ * `params`: (optional) this is any parameters that should be sent to the `authSuccess` event listener after a successful login. This can be used to transfer data between pre and post login session.
+ * `options`: (optional) this is an object containing any additional information passed to the `login` function of the `keycloak-js` object.
+
+ ### reAuthenticate (async function)
+ This is used to manually trigger updating of the existing user token. Token updating is done automatically by the `keycloak-js` library and you might not need to call this function directly.
+
+ ### logout (function)
+ Use this to logout current user. The takes an optional `redirectUri` parameter. Redirect to default uri provided during configuration if not provided here.
+
+ ### accountManagement
+ A wrapper around the `accountManagement` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference).
+
+ ### register
+ A wrapper around the `register` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference). It takes the user to the registration page of keycloak where the user can signup for a new account.
+
+ ### hasRealmRole
+ A wrapper around the `hasRealmRole` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference). Use this to check if the current user has a specific realm role in keycloak.
+
+ ### hasResourceRole
+ A wrapper around the `hasResourceRole` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference). Use this to check if the current user has a specific resource role.
+
+ ### loadUserInfo
+ A wrapper around the `loadUserInfo` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference).
+
+ ### loadUserProfile
+ A wrapper around the `loadUserProfile` function provided by the `keycloak-js` object. check documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#javascript-adapter-reference).
+
+ ### hasPermission
+ This is similar to the server side hook `hasPermissions`. Since most client side apps are configured as `public` clients in keycloak they do not have access to the `permissions`. The library circumvents this by returning the permissions from the feathersjs server. This function can then be used to check if the user has a specific permission on the feathersjs server.
+
+ Example: to check if the current user has create permission on the transactions service.
+ ```
+  app.hasPermission({resource: 'transactions', scopes: 'create'})
+ ```
+
+ Returns `true` if user has permission, otherwise returns `false`.

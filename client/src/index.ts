@@ -102,7 +102,7 @@ export class KeycloakClient {
     }
   }
   
-  hasPermission (options?: any): any {
+  hasPermission (options?: any): boolean {
     const data: any[] = this.currentUser.permissions || [];
     const permissions: any[] = [];
     if (!options) {
@@ -195,6 +195,10 @@ export class KeycloakClient {
     return component;
   }
 
+  configureVueRouter(router: any, timeout?: number): void {
+    router.addRoute({path: this.vueRouterLink, name: 'Keycloak-Authentication', component: this.vueRouterComponent(timeout)});
+  }
+
   makeURL(path: string, origin?: string):string {
     if (path.includes('://')) {
       return path;
@@ -249,6 +253,7 @@ declare module '@feathersjs/feathers' {
     hasResourceRole: Keycloak.KeycloakInstance['hasResourceRole'];
     loadUserInfo: Keycloak.KeycloakInstance['loadUserInfo'];
     loadUserProfile: Keycloak.KeycloakInstance['loadUserProfile'];
+    hasPermission: KeycloakClient['hasPermission'];
   }
 }
 
@@ -268,6 +273,7 @@ export const AuthConfigure = function (config: KeycloakClientConfig) {
     app.loadUserProfile = keycloak.keycloak.loadUserProfile.bind(keycloak.keycloak);
     app.register = keycloak.keycloak.register.bind(keycloak.keycloak);
     app.authenticated = keycloak.authenticated.bind(keycloak);
+    app.hasPermission = keycloak.hasPermission.bind(keycloak)
     app.hooks({
       before: [keycloak.hook.bind(keycloak)]
     })
