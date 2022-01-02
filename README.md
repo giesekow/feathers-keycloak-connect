@@ -193,28 +193,31 @@ const router = ... // configured vue-router object
 app.authentication.configureVueRouter(router);
 ```
 
-## Added properties and methods to the feathers client object.
-The following properties and methods are available on the feathers client object after configuration:
+## Added properties or attributes
+The following properties or attributes are available on the feathers client object after configuration:
 
-### authentication (property)
+### authentication
 The authentication library itself is accessible through this property.
 
-### keycloak (property)
+### keycloak
 The keycloak object from `keycloak-js` library is also available here.
 
-### authenticated (function)
+## Added functions or methods
+The following functions or methods are available on the feathers client object after configuration:
+
+### authenticated
  A function which returns `true` if user has logged in or false otherwise.
 
-### authenticate | login  (function)
+### authenticate | login
  A function which can be used to trigger the login action. That's redirect user to keycloak for authentication. Parameters are:
  * `redirectUri`: (optional) a redirect URI to override the defualt configured uri.
  * `params`: (optional) this is any parameters that should be sent to the `authSuccess` event listener after a successful login. This can be used to transfer data between pre and post login session.
  * `options`: (optional) this is an object containing any additional information passed to the `login` function of the `keycloak-js` object.
 
- ### reAuthenticate (async function)
+ ### reAuthenticate (async)
  This is used to manually trigger updating of the existing user token. Token updating is done automatically by the `keycloak-js` library and you might not need to call this function directly.
 
- ### logout (function)
+ ### logout
  Use this to logout current user. The takes an optional `redirectUri` parameter. Redirect to default uri provided during configuration if not provided here.
 
  ### accountManagement
@@ -244,3 +247,33 @@ The keycloak object from `keycloak-js` library is also available here.
  ```
 
  Returns `true` if user has permission, otherwise returns `false`.
+
+ ## Added events
+ the following events will triggered by the feathers client object after configureation.
+
+ ### authSuccess
+ Will be triggered on successful authentication.
+ ```
+ app.on('authSuccess', (payload) => {
+   console.log(payload);
+ })
+ ```
+
+ the `payload` object has the following fields:
+ * `user`: the current user object.
+ * `params`: the optional params object passed to the `login` function.
+
+ ### authLogout
+ Will be triggered on a successful logout.
+
+ ### authError
+ Will be triggered if there is an error during login.
+ ```
+ app.on('authError', (payload) => {
+   console.log(payload);
+ })
+ ```
+
+ the `payload` object has the following fields:
+ * `error`: the error oject.
+ * `params`: the optional params object passed to the `login` function.
