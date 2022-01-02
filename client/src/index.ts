@@ -50,7 +50,7 @@ export class KeycloakClient {
     if (socket) this.handleSocket(socket);
   }
 
-  async onAuthSuccess() {
+  async onAuthSuccess(): Promise<void> {
     const token = this.keycloak.token;
     try {
       const user: any = await this.app.service('auth').create({ access_token: token });
@@ -120,19 +120,19 @@ export class KeycloakClient {
       for (let i = 0; i < permissions.length; i++) {
         res = res || this.checkPermission(data, permissions[i].resource, permissions[i].scope)
         if (res) return true;
-      };
+      }
       if (!res) return false;
     }
 
     return true;
   }
 
-  async onAuthLogout() {
+  async onAuthLogout(): Promise<void> {
     this.currentUser = null;
     this.app.emit('authLogout');
   }
 
-  handleSocket (socket: any) {
+  handleSocket (socket: any): void {
     const connected = this.app.io ? 'connect' : 'open';
     const disconnected = this.app.io ? 'disconnect' : 'disconnection';
     socket.on(disconnected, () => {
@@ -142,7 +142,7 @@ export class KeycloakClient {
     });
   }
 
-  async onTokenExpired() {
+  async onTokenExpired(): Promise<void> {
     await this.keycloak.updateToken(this.minValidity);
   }
 
@@ -152,7 +152,7 @@ export class KeycloakClient {
     return this.keycloak.token;
   }
 
-  onAuthError() {
+  onAuthError(): void {
     let params: any = window.sessionStorage.getItem('keycloak-loginParams');
     if (params) {
       params = JSON.parse(params)

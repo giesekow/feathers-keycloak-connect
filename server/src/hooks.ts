@@ -22,6 +22,7 @@ export function getClient(context: any) {
 
 export const protect = function (options?: any): any {
   return async function(context: any) {
+    if (!context.params.provider) return context;
     const user = getUser(context);
     const client = getClient(context);
     if (user && client) return context;
@@ -34,13 +35,17 @@ export interface ResrictToOwnerOptions {
   ownerField?: string,
 }
 
+function getField(obj: any, field: string): any {
+  return field.split('.').reduce((c: any, r: any) => { return c ? c[r] : c }, obj);
+}
+
 export const restrictToOwner = function (options?: ResrictToOwnerOptions): any {
-  let opts = {...{ idField: '_id', ownerField: '_id' }, ...options || {}};
+  let opts = {...{ idField: 'profile._id', ownerField: '_id' }, ...options || {}};
   return async function(context: any) {
     let user = getUser(context);
     if (user && user.isInternal) return context
     if (user) {
-      let userId = user[opts.idField];
+      let userId = getField(user, opts.idField);
       if (!context.params.query) context.params.query = {};
       context.params.query[opts.ownerField] = userId;
       return context;
