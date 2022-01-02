@@ -116,3 +116,28 @@ function (options): {
   }
 }
 ```
+
+
+# Client Side
+## Install client library with `npm`:
+  - `npm install --save feathers-keycloak-connect-client`
+
+Note:
+The client side code uses the `keycloak-js` behind the scence to login to keycloak and retrieve the `jwt`.
+
+## Import and configure library with feathersjs client object
+```
+  import { AuthConfigure } from 'feathers-keycloak-connect-client';
+  
+  app.configure(AuthConfigure(KeycloakClientConfig));
+```
+
+`KeycloakClientConfig` is an object with the following fields:
+* `keycloakConfig`: this translate directly to the `KeycloakConfig` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
+* `keycloakInit`: this translate directly to the `KeycloakInitOptions` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
+* `loginRedirectUri`: the uri to redirect to after a successful login.
+* `logoutRedirectUri`: the uri to redirect to after a successful logout.
+* `scope`: the scope to retrieve from the keycloak server when performing login action.
+* `minValidity`: the minimum validity period before the `jwt` is refreshed. (defaults to 5secs).
+* `withVueRouter`: this is a boolean value which determines if you are using the library with vue-router or not (defaults to `false` which means you are using without vue-router).
+* `vueRouterLink`: this is needed if the `withVueRouter` option is true but defaults to (`/auth`). This is the path on vue-router where the `vue-router` component of this library has to be mounted. More details discussed later.
