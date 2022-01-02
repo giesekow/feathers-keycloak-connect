@@ -87,7 +87,7 @@ app.service('users').hooks({before: {find: hooks.hasResourceRole({resource: 'acc
 ### hooks.hasPermission
 This hook checks if the current users passes the stated permission or atleast one of the group of permissions. For permissions to work you need to provide the `secret` field when configuring the library in the ``.
 
-Configuring permissions in keycloak can be a little bit confusing check this link on stackoverflow `https://stackoverflow.com/questions/42186537/resources-scopes-permissions-and-policies-in-keycloak` where people try to explain how to do this.
+Configuring permissions in keycloak can be a little bit confusing check this link on stackoverflow [here](https://stackoverflow.com/questions/42186537/resources-scopes-permissions-and-policies-in-keycloak) where people try to explain how to do this.
 
 Example: Restrict the `create` method of the `transactions` service in feathersjs to only users who have a `transactions:create` permission in keycloak.
 ```
