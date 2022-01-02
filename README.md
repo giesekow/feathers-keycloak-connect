@@ -133,11 +133,11 @@ The client side code uses the `keycloak-js` behind the scence to login to keyclo
 ```
 
 `KeycloakClientConfig` is an object with the following fields:
-* `keycloakConfig`: this translate directly to the `KeycloakConfig` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
-* `keycloakInit`: this translate directly to the `KeycloakInitOptions` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
-* `loginRedirectUri`: the uri to redirect to after a successful login.
-* `logoutRedirectUri`: the uri to redirect to after a successful logout.
-* `scope`: the scope to retrieve from the keycloak server when performing login action.
-* `minValidity`: the minimum validity period before the `jwt` is refreshed. (defaults to 5secs).
-* `withVueRouter`: this is a boolean value which determines if you are using the library with vue-router or not (defaults to `false` which means you are using without vue-router).
-* `vueRouterLink`: this is needed if the `withVueRouter` option is true but defaults to (`/auth`). This is the path on vue-router where the `vue-router` component of this library has to be mounted. More details discussed later.
+* `keycloakConfig`: (required) this translate directly to the `KeycloakConfig` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
+* `keycloakInit`: (required) this translate directly to the `KeycloakInitOptions` option needed by the `keycloak-js` library. you can check out the documentation [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter).
+* `loginRedirectUri`: (optional defaults to '/') the uri to redirect to after a successful login.
+* `logoutRedirectUri`: (optional defaults to '/') the uri to redirect to after a successful logout.
+* `scope`: (optional) the scope to retrieve from the keycloak server when performing login action.
+* `minValidity`: (optional defaults to 5secs) the minimum validity period before the `jwt` is refreshed.
+* `withVueRouter`: (optional) this is a boolean value which determines if you are using the library with vue-router or not (defaults to `false` which means you are using without vue-router).
+* `vueRouterLink`: (optional) this is needed if the `withVueRouter` option is true but defaults to (`/auth`). This is the path on vue-router where the `vue-router` component of this library has to be mounted. More details discussed later.
