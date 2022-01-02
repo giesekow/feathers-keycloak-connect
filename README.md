@@ -128,7 +128,7 @@ The client side code uses the `keycloak-js` behind the scence to login to keyclo
 ## Import and configure library with feathersjs client object
 ```
   import { AuthConfigure } from 'feathers-keycloak-connect-client';
-  
+  ... configure other libraries ...
   app.configure(AuthConfigure(KeycloakClientConfig));
 ```
 
@@ -141,3 +141,19 @@ The client side code uses the `keycloak-js` behind the scence to login to keyclo
 * `minValidity`: (optional defaults to 5secs) the minimum validity period before the `jwt` is refreshed.
 * `withVueRouter`: (optional) this is a boolean value which determines if you are using the library with vue-router or not (defaults to `false` which means you are using without vue-router).
 * `vueRouterLink`: (optional) this is needed if the `withVueRouter` option is true but defaults to (`/auth`). This is the path on vue-router where the `vue-router` component of this library has to be mounted. More details discussed later.
+
+At the time of writing this documentation the required fields in the `KeycloakConfig` object are below. check official docs for any possible update or changes [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter):
+* `url`: the url to the keycloak server (e.g. 'http://localhost:9000/auth').
+* `realm`: the keycloak realm to use.
+* `clientId`: the id of the configured client in keycloak.
+
+
+
+At the time of writing this documentation the `KeycloakInitOptions` has no required fields (only optional fields) check official docs for any possible update or changes [here](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) relevant fields include:
+* `onLoad`: action to perform after the library is loaded. options are 
+    `login-required` => checks if user is logged in and redirects to login page if not.
+    `check-sso` => silently checks sso and loads user information if user is already logged in or nothing otherwise.
+
+* `enableLogging`: boolean value to enable showing of logs in the browser console. Enable this only for debuging purposes.
+
+Other options like `adapter`, `checkLoginIframe`, `flow` are also available. Check [docs](https://www.keycloak.org/docs/latest/securing_apps/index.html#_javascript_adapter) for more details. 
