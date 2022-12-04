@@ -85,6 +85,9 @@ export class KeycloakServer {
         lastName: payload.family_name,
         _id: payload.sub,
         id: payload.sub,
+        exp: payload.exp,
+        iat: payload.iat,
+        auth_time: payload.auth_time
       };
       response.client = {
         _id: payload.azp,
@@ -94,6 +97,9 @@ export class KeycloakServer {
         allowed_origins: payload['allowed-origins'],
         scope: payload.scope,
         audience: payload.aud,
+        exp: payload.exp,
+        iat: payload.iat,
+        auth_time: payload.auth_time
       };
     } catch (error) {
     }
@@ -179,6 +185,16 @@ export class KeycloakServer {
       }
     };
 
+    methods.patch = async (id: any, data: any, params: any) => {
+      const content: any = params && params.$token;
+      if (content) {
+        app.emit('token-updated', data, params, {});
+        return {...content.user, permissions: content.permissions || []};
+      } else {
+        throw new Forbidden('access token error!');
+      }
+    };
+
     methods.remove = async (id: any, params: any) => {
       const connection: any = params.connection || {};
       app.emit('logout', id, params, {});
@@ -196,7 +212,8 @@ export const AuthConfigure = function (config: KeycloakServerConfig) {
     app.use('/auth', keycloak.authService(app));
     app.service('/auth').hooks({
       before: {
-        create: [keycloak.authHook()]
+        create: [keycloak.authHook()],
+        patch: [keycloak.authHook()]
       }
     });
     app.set('keycloak', keycloak);

@@ -144,11 +144,22 @@ export class KeycloakClient {
 
   async onTokenExpired(): Promise<void> {
     await this.keycloak.updateToken(this.minValidity);
+    const token: any = this.keycloak.token;
+    const user: any = await this.app.service('auth').patch(null, { access_token: token });
+    this.currentUser = user;
+    let params: any = window.sessionStorage.getItem('keycloak-loginParams');
+    if (params) {
+      params = JSON.parse(params)
+      params = params.params || null;
+    } else {
+      params = null;
+    }
+    this.app.emit('token-refreshed', {user: this.currentUser, params});
   }
 
   async getToken(): Promise<string|undefined> {
     const isExpired = this.keycloak.isTokenExpired();
-    if (isExpired) await this.keycloak.updateToken(this.minValidity);
+    if (isExpired) await this.onTokenExpired();
     return this.keycloak.token;
   }
 

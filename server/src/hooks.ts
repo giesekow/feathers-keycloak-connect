@@ -20,12 +20,24 @@ export function getClient(context: any) {
   }
 }
 
+function checkExpiry(user: any) {
+  if (user?.isInternal) return;
+  const currentTime = Date.now();
+  if (!user || ((user.exp * 1000) + (60 * 1000) < currentTime)) {
+    throw new Forbidden('Session Expired!');    
+  }
+}
+
 export const protect = function (options?: any): any {
   return async function(context: any) {
     if (!context.params.provider) return context;
     const user = getUser(context);
     const client = getClient(context);
-    if (user && client) return context;
+    if (user && client) {
+      checkExpiry(user);
+      return context;
+    }
+    
     throw new Forbidden('Access Denied!');
   }
 };
@@ -45,6 +57,7 @@ export const restrictToOwner = function (options?: ResrictToOwnerOptions): any {
     let user = getUser(context);
     if (user && user.isInternal) return context
     if (user) {
+      checkExpiry(user);
       let userId = getField(user, opts.idField);
       if (!context.params.query) context.params.query = {};
       context.params.query[opts.ownerField] = userId;
@@ -65,6 +78,7 @@ export const hasResourceRole = function (options?: ResourceAccessOptions | Resou
     const client = getClient(context);
     if (user && user.isInternal) return context
     if (user && client) {
+      checkExpiry(user);
       const res: any = client.resource_access || {};
       let hasAccess = false;
       if (Array.isArray(options)) {
@@ -109,6 +123,7 @@ export const hasRealmRole = function (options: string|string[]): any {
     const client = getClient(context);
     if (user && user.isInternal) return context
     if (user && client) {
+      checkExpiry(user);
       let hasAccess = false;
       const roles: any = client.realm_access?.roles || [];
       if (Array.isArray(options)) {
@@ -161,6 +176,8 @@ function resolvePermission(permission: any): any {
 export const hasPermission = function (options?: any): any {
   return async function(context: any) {
     const data: any[] = context.params.permissions;
+    const user: any = getUser(context);
+    checkExpiry(user);
     const permissions: any[] = [];
     if (!options) {
       permissions.push({resource: context.path, scope: context.method})
