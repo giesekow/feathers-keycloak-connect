@@ -28,6 +28,24 @@ export class KeycloakServer {
     this.keystore = createRemoteJWKSet(new URL(`${this.config.serverUrl}${this.resolveURL(this.endpoints.certs)}`));
   }
 
+  async getClientToken() {
+    try {
+      const res: any = await this.post(
+        this.resolveURL(this.endpoints.token),
+        {
+          grant_type: 'client_credentials',
+          scope: 'email',
+        },
+        {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      )
+      return res.access_token;
+    } catch (error) {
+    }
+    return null;
+  }
+
   toBase64(data: any): string {
     const buff = Buffer.from(data,);
     return buff.toString('base64');
