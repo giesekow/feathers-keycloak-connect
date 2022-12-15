@@ -42,6 +42,32 @@ export const protect = function (options?: any): any {
   }
 };
 
+export const protectUser = function (options?: any): any {
+  return async function(context: any) {
+    if (!context.params.provider) return context;
+    const user = getUser(context);
+    if (user) {
+      checkExpiry(user);
+      return context;
+    }
+    
+    throw new Forbidden('Access Denied!');
+  }
+};
+
+export const protectClient = function (options?: any): any {
+  return async function(context: any) {
+    if (!context.params.provider) return context;
+    const client = getClient(context);
+    if (client) {
+      checkExpiry(client);
+      return context;
+    }
+    
+    throw new Forbidden('Access Denied!');
+  }
+};
+
 export interface ResrictToOwnerOptions {
   idField?: string,
   ownerField?: string,

@@ -40,7 +40,7 @@ export class KeycloakServer {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
       )
-      return res.access_token;
+      return res.data;
     } catch (error) {
     }
     return null;
