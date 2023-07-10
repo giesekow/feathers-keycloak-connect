@@ -124,7 +124,7 @@ export class KeycloakServer {
     return response;
   }
 
-  expressMiddleware (app: any) {
+  middleware (app: any) {
     return async (req: any, res: any, next: any) => {
       if (req && req.headers && req.headers.authorization && req.headers.authorization.toLowerCase().includes('bearer')) {
         const token: any = req.headers.authorization.split(' ')[1]
@@ -157,45 +157,8 @@ export class KeycloakServer {
     }
   }
 
-  koaMiddleware (app: any) {
-    return async (ctx: any, next: any) => {
-      const req = ctx.req;
-      if (req && req.headers && req.headers.authorization && req.headers.authorization.toLowerCase().includes('bearer')) {
-        const token: any = req.headers.authorization.split(' ')[1]
-        if (token) {
-          const content = await this.verifyToken(token);
-          if (content) {
-            if (content.user && content.user._id) {
-              const profileQuery: any = {};
-              profileQuery[this.config.serviceIdField || 'keycloakId'] = content.user._id;
-              const service: any = app.service(this.config.userService || 'users')
-              if (service) {
-                const profile: any = await service.find({query: {...profileQuery, $limit: 1}});
-                if (profile.data?.length > 0) {
-                  content.user.profile = profile.data[0];
-                } else {
-                  const newProfile: any = await service.create(profileQuery)
-                  content.user.profile = newProfile;
-                }
-              } else {
-                content.user.profile = {};
-              }
-            }
-            ctx.feathers = {
-              user: content.user,
-              client: content.client,
-              permisions: content.permissions || [],
-              ...ctx.feathers || {}
-            }
-          }
-        }
-      }
-      await next();
-    }
-  }
-
   authHook () {
-    return async (context: any, next?: any) => {
+    return async (context: any) => {
       const token: any = context.data && context.data.access_token ? context.data.access_token : null;
       if (token) {
         const content: any = await this.verifyToken(token);
@@ -224,7 +187,6 @@ export class KeycloakServer {
           }
         }
       }
-      if (next) return next();
       return context;
     }
   }
@@ -261,13 +223,10 @@ export class KeycloakServer {
   }
 }
 
-export const AuthConfigure = function (config: KeycloakServerConfig, isKoa: Boolean = false) {
+export const AuthConfigure = function (config: KeycloakServerConfig) {
   return (app: any) => {
     const keycloak: KeycloakServer = new KeycloakServer(config);
-    
-    if (isKoa) app.use(keycloak.koaMiddleware(app));
-    else app.use(keycloak.expressMiddleware(app));
-
+    app.use(keycloak.middleware(app));
     app.use('/auth', keycloak.authService(app));
     app.service('/auth').hooks({
       before: {

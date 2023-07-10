@@ -191,9 +191,24 @@ export class KeycloakClient {
     }
   }
 
-  vueRouterComponent(timeout?: number): VueRouterComponent {
+  vue2RouterComponent(timeout?: number): VueRouterComponent {
     const component: any = {
       render: (h: any) => h('div'),
+      mounted() {
+        const ruri: string|null = window.sessionStorage.getItem('keycloak-currentRedirect');
+        if (ruri) {
+          setTimeout(() => {
+            (this as any).$router.replace(ruri);
+          }, timeout || 1000);
+        }
+      }
+    }
+    return component;
+  }
+
+  vueRouterComponent(timeout?: number): VueRouterComponent {
+    const component: any = {
+      render: () => '',
       mounted() {
         const ruri: string|null = window.sessionStorage.getItem('keycloak-currentRedirect');
         if (ruri) {

@@ -29,33 +29,26 @@ function checkExpiry(user: any) {
 }
 
 export const protect = function (options?: any): any {
-  return async function(context: any, next?: any) {
-    if (!context.params.provider) {
-      if (next) return next();
-      return context;
-    }
+  return async function(context: any) {
+    if (!context.params.provider) return context;
     const user = getUser(context);
     const client = getClient(context);
     if (user && client) {
       checkExpiry(user);
-      if (next) return next();
-      else return context;
+      return context;
     }
+    
     throw new Forbidden('Access Denied!');
   }
 };
 
 export const protectUser = function (options?: any): any {
-  return async function(context: any, next?: any) {
-    if (!context.params.provider) {
-      if (next) return next();
-      return context
-    }
+  return async function(context: any) {
+    if (!context.params.provider) return context;
     const user = getUser(context);
     if (user) {
       checkExpiry(user);
-      if (next) return next();
-      return context
+      return context;
     }
     
     throw new Forbidden('Access Denied!');
@@ -63,15 +56,11 @@ export const protectUser = function (options?: any): any {
 };
 
 export const protectClient = function (options?: any): any {
-  return async function(context: any, next?: any) {
-    if (!context.params.provider) {
-      if (next) return next();
-      return context;
-    }
+  return async function(context: any) {
+    if (!context.params.provider) return context;
     const client = getClient(context);
     if (client) {
       checkExpiry(client);
-      if (next) return next();
       return context;
     }
     
@@ -90,23 +79,16 @@ function getField(obj: any, field: string): any {
 
 export const restrictToOwner = function (options?: ResrictToOwnerOptions): any {
   let opts = {...{ idField: 'profile._id', ownerField: '_id' }, ...options || {}};
-  return async function(context: any, next?: any) {
+  return async function(context: any) {
     let user = getUser(context);
-    
-    if (user && user.isInternal) {
-      if (next) return next();
-      return context;
-    }
-
+    if (user && user.isInternal) return context
     if (user) {
       checkExpiry(user);
       let userId = getField(user, opts.idField);
       if (!context.params.query) context.params.query = {};
       context.params.query[opts.ownerField] = userId;
-      if (next) return next();
       return context;
     }
-
     throw new Forbidden('Access Denied!');
   }
 };
@@ -117,13 +99,10 @@ export interface ResourceAccessOptions {
 }
 
 export const hasResourceRole = function (options?: ResourceAccessOptions | ResourceAccessOptions[]): any {
-  return async function(context: any, next?: any) {
+  return async function(context: any) {
     const user = getUser(context);
     const client = getClient(context);
-    if (user && user.isInternal) {
-      if (next) return next();
-      return context;
-    }
+    if (user && user.isInternal) return context
     if (user && client) {
       checkExpiry(user);
       const res: any = client.resource_access || {};
@@ -138,7 +117,6 @@ export const hasResourceRole = function (options?: ResourceAccessOptions | Resou
       if (!hasAccess) {
         throw new Forbidden('Access Denied!');
       } else {
-        if (next) return next();
         return context;
       }
     }
@@ -166,13 +144,10 @@ function checkResourceAccess(data: any, resources: string|string[], roles: strin
 }
 
 export const hasRealmRole = function (options: string|string[]): any {
-  return async function(context: any, next?: any) {
+  return async function(context: any) {
     const user = getUser(context);
     const client = getClient(context);
-    if (user && user.isInternal) {
-      if (next) return next();
-      return context;
-    }
+    if (user && user.isInternal) return context
     if (user && client) {
       checkExpiry(user);
       let hasAccess = false;
@@ -187,7 +162,6 @@ export const hasRealmRole = function (options: string|string[]): any {
       if (!hasAccess) {
         throw new Forbidden('Access Denied!');
       } else {
-        if (next) return next();
         return context;
       }
     }
@@ -226,7 +200,7 @@ function resolvePermission(permission: any): any {
 }
 
 export const hasPermission = function (options?: any): any {
-  return async function(context: any, next?: any) {
+  return async function(context: any) {
     const data: any[] = context.params.permissions;
     const user: any = getUser(context);
     checkExpiry(user);
@@ -247,15 +221,10 @@ export const hasPermission = function (options?: any): any {
       let res = false;
       for (let i = 0; i < permissions.length; i++) {
         res = res || checkPermission(data, permissions[i].resource, permissions[i].scope);
-        if (res) {
-          if (next) return next();
-          return context;
-        }
+        if (res) return context;
       }
       if (!res) throw new Forbidden('Access Denied!');
     }
-
-    if (next) return next();
     return context;
   }
 }
