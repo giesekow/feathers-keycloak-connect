@@ -6,12 +6,13 @@ import * as authHooks from './hooks';
 export const hooks = authHooks;
 
 export interface KeycloakServerConfig {
-  serverUrl: string,
-  realm: string,
-  clientId: string,
-  secret?: string,
-  userService?: string,
-  serviceIdField?: string
+  serverUrl: string;
+  realm: string;
+  clientId: string;
+  secret?: string;
+  userService?: string;
+  serviceIdField?: string;
+  additionalFields?: (user: any) => any;
 }
 
 export class KeycloakServer {
@@ -124,6 +125,12 @@ export class KeycloakServer {
     return response;
   }
 
+  private getAdditionalField(user: any) {
+    let data: any = {};
+    if (this.config.additionalFields) data = this.config.additionalFields(user);
+    return data || {};
+  }
+
   expressMiddleware (app: any) {
     return async (req: any, res: any, next: any) => {
       if (req && req.headers && req.headers.authorization && req.headers.authorization.toLowerCase().includes('bearer')) {
@@ -140,7 +147,8 @@ export class KeycloakServer {
                 if (profile.data?.length > 0) {
                   content.user.profile = profile.data[0];
                 } else {
-                  const newProfile: any = await service.create(profileQuery)
+                  const createData: any = {...profileQuery, ...this.getAdditionalField(content.user)};
+                  const newProfile: any = await service.create(createData);
                   content.user.profile = newProfile;
                 }
               } else {
@@ -174,7 +182,8 @@ export class KeycloakServer {
                 if (profile.data?.length > 0) {
                   content.user.profile = profile.data[0];
                 } else {
-                  const newProfile: any = await service.create(profileQuery)
+                  const createData: any = {...profileQuery, ...this.getAdditionalField(content.user)};
+                  const newProfile: any = await service.create(createData);
                   content.user.profile = newProfile;
                 }
               } else {
@@ -211,7 +220,8 @@ export class KeycloakServer {
                 if (profile.data?.length > 0) {
                   content.user.profile = profile.data[0];
                 } else {
-                  const newProfile: any = await service.create(profileQuery)
+                  const createData: any = {...profileQuery, ...this.getAdditionalField(content.user)};
+                  const newProfile: any = await service.create(createData);
                   content.user.profile = newProfile;
                 }
               } else {
