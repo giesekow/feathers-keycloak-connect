@@ -239,6 +239,39 @@ export class KeycloakServer {
     }
   }
 
+  authorizationHook(app: any) {
+    return async (hook: any) => {
+      if (hook.params?.headers?.authorization && hook.params?.headers?.authorization.toLowerCase().includes('bearer') && !hook.params.user && !hook.params.client) {
+        const token: any = hook.params.headers.authorization.split(' ')[1]
+        if (token) {
+          const content = await this.verifyToken(token);
+          if (content) {
+            if (content.user && content.user._id) {
+              const profileQuery: any = {};
+              profileQuery[this.config.serviceIdField || 'keycloakId'] = content.user._id;
+              const service: any = app.service(this.config.userService || 'users')
+              if (service) {
+                const profile: any = await service.find({query: {...profileQuery, $limit: 1}});
+                if (profile.data?.length > 0) {
+                  content.user.profile = profile.data[0];
+                } else {
+                  const createData: any = {...profileQuery, ...this.getAdditionalField(content.user)};
+                  const newProfile: any = await service.create(createData);
+                  content.user.profile = newProfile;
+                }
+              } else {
+                content.user.profile = {};
+              }
+            }
+            hook.params.user = content.user;
+            hook.params.client = content.client;
+            hook.params.permisions = content.permissions || [];
+          }
+        }
+      }
+    }
+  }
+
   authService (app: any) {
     const methods: any = {};
     methods.create = async (data: any, params: any) => {
@@ -277,6 +310,10 @@ export const AuthConfigure = function (config: KeycloakServerConfig, isKoa: Bool
     
     if (isKoa) app.use(keycloak.koaMiddleware(app));
     else app.use(keycloak.expressMiddleware(app));
+
+    app.hooks({
+      before: [keycloak.authorizationHook(app)]
+    })
 
     app.use('/auth', keycloak.authService(app));
     app.service('/auth').hooks({
