@@ -262,7 +262,7 @@ export class KeycloakClient {
 }
 
 declare module '@feathersjs/feathers' {
-  interface Application<ServiceTypes = {}> {
+  interface Application<Services, Settings> {
     io?: any;
     rest?: any;
     primus?: any;
