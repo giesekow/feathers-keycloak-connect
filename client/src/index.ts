@@ -30,7 +30,7 @@ export class KeycloakClient {
 
   constructor(app: Application, config: KeycloakClientConfig) {
     this.app = app;
-    this.keycloak = Keycloak(config.keycloakConfig);
+    this.keycloak = new Keycloak(config.keycloakConfig);
     this.loginRedirectUri = config.loginRedirectUri || '/';
     this.logoutRedirectUri = config.logoutRedirectUri || '/';
     this.minValidity = config.minValidity || 5;

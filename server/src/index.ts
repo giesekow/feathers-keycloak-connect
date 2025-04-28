@@ -102,8 +102,8 @@ export class KeycloakServer {
         username: payload.preferred_username,
         firstName: payload.given_name,
         lastName: payload.family_name,
-        _id: payload.sub,
-        id: payload.sub,
+        _id: payload.sub || payload.sid,
+        id: payload.sub || payload.sid,
         exp: payload.exp,
         iat: payload.iat,
         auth_time: payload.auth_time

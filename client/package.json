@@ -1,6 +1,6 @@
 {
   "name": "feathers-keycloak-connect-client",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A plugin to use feathersjs with keycloak authentication service",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -21,6 +21,6 @@
   ],
   "dependencies": {
     "@feathersjs/feathers": "^5.0.21",
-    "keycloak-js": "^18.0.0"
+    "keycloak-js": "^25.0.2"
   }
 }
